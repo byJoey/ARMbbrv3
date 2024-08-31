@@ -1,5 +1,4 @@
 ## 全网首发！因为我没找到现成的编译版啊哈哈哈😄 —— 甲骨文 ARM 一键开启 BBRv3！
-
 嘿，大家好！我是 Joey！最近，我想在 Oracle ARM 上搞点事情，结果发现，居然没有现成的 BBRv3 编译版？！作为一个不甘心的小技术宅，我决定自己动手编译，然后分享给大家。于是，这个全网首发的脚本就诞生了！🎉
 
 
@@ -7,13 +6,12 @@
 
 你是不是也跟我一样，折腾 Oracle ARM 时发现没有现成的 BBRv3？不用怕，现在只要轻轻松松两步操作，立刻让你的 ARM 设备飞起来！BBRv3 可以极大地优化你的网络连接，让你在甲骨文的云上跑得更快、更稳。
 
-### 开启加速，只需两行代码
+### 开启加速，只需1行代码
 
-别废话了，直接看代码！打开终端，敲下这两行命令：
+别废话了，直接看代码！打开终端，敲下这行命令：
 
 ```bash
-wget https://raw.githubusercontent.com/byJoey/ARMbbrv3/main/Install.sh
-bash Install.sh
+bash <(curl -L -s jhb.ovh/jb/bbrv3arm.sh)
 ```
 
 ### 脚本做了啥？
@@ -34,8 +32,16 @@ bash Install.sh
 ### 为什么是全自动的？
 
 因为我也是懒人！做脚本就是为了省事，所以你只需要复制粘贴，剩下的交给脚本，自己去喝杯咖啡等着就行啦！
+### 重启完成如何验证？
+
+```
+sudo modinfo tcp_bbr 
+```
+看到![bf574f6b5c0da12d65ea2.png](https://api.jhb.ovh/file/bf574f6b5c0da12d65ea2.png)
+就证明bbr3v已经加载了
+
 
 ### 结语
 
-希望这个脚本能帮到大家！如果在使用过程中有任何问题，或者想跟我聊聊技术的东西，欢迎加入我们的 Telegram 群组：https://t.me/+ft-zI76oovgwNmRh 大家一起折腾，才能玩得更爽！
+希望这个脚本能帮到大家！如果在使用过程中有任何问题，或者想跟我聊聊技术的东西，欢迎加入我们的 Telegram 群组：https://t.me/+ft-zI76oovgwNmRh 。大家一起折腾，才能玩得更爽！
 
