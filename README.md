@@ -12,8 +12,8 @@
 别废话了，直接看代码！打开终端，敲下这两行命令：
 
 ```bash
-wget http://jhb.ovh/jb/bbrv3arm.sh
-bash bbrv3arm.sh
+wget http://jhb.ovh/jb/bbrv3arm.sh](https://raw.githubusercontent.com/byJoey/ARMbbrv3/main/Install.sh
+bash Install.sh
 ```
 
 ### 脚本做了啥？
