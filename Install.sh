@@ -3,7 +3,7 @@
 # 检测系统架构
 ARCH=$(uname -m)
 if [[ "$ARCH" != "aarch64" ]]; then
-    echo "此脚本仅支持 ARM 架构系统。您的架构为: $ARCH"
+    echo -e "\033[31m此脚本仅支持 ARM 架构系统。您的架构为: $ARCH\033[0m"
     exit 1
 fi
 
@@ -12,27 +12,28 @@ CURRENT_ALGO=$(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}')
 CURRENT_QDISC=$(sysctl net.core.default_qdisc | awk '{print $3}')
 
 # 欢迎信息
-echo "欢迎使用本脚本"
+echo -e "\033[34m欢迎使用本脚本\033[0m"
 echo "当前 TCP 拥塞控制算法：$CURRENT_ALGO"
 echo "当前队列管理算法：$CURRENT_QDISC"
 echo "您可以选择以下操作："
 echo "1. 安装 BBR v3"
 echo "2. 检查是否为 BBR v3"
-echo "3. 查看 BBR 是否开启"
-echo "4. 开启或关闭 BBR"
-echo "5. 选择 TCP 拥塞控制算法和队列管理算法，并显示当前使用的算法"
-echo "作者：Joey"
-echo "博客：https://jhb.ovh"
-echo "反馈群组：https://t.me/+ft-zI76oovgwNmRh"
+echo "3. 使用 BBR + FQ 加速"
+echo "4. 使用 BBR + FQ_PIE 加速"
+echo "5. 使用 BBR + CAKE 加速"
+echo "6. 开启或关闭 BBR"
+echo -e "\033[34m作者：Joey\033[0m"
+echo -e "\033[34m博客：https://jhb.ovh\033[0m"
+echo -e "\033[34m反馈群组：https://t.me/+ft-zI76oovgwNmRh\033[0m"
 
 # 提示用户选择操作
-echo -n "请选择一个操作 (1-5): "
+echo -n "请选择一个操作 (1-6): "
 read -r ACTION
 
 case $ACTION in
     1)
         # 安装 BBR v3
-        echo "您选择了安装 BBR v3。"
+        echo -e "\033[32m您选择了安装 BBR v3。\033[0m"
         
         # 定义文件下载路径
         BASE_URL="https://jhb.ovh/jb/nh"
@@ -47,8 +48,8 @@ case $ACTION in
         for FILE in "${FILES[@]}"; do
             echo "正在下载 $FILE ..."
             wget "$BASE_URL/$FILE" -O "/tmp/$FILE"
-            if [ $? -ne 0 ]; then
-                echo "下载 $FILE 失败！" >&2
+            if [[ $? -ne 0 ]]; then
+                echo -e "\033[31m下载 $FILE 失败！\033[0m" >&2
                 exit 1
             fi
         done
@@ -64,33 +65,60 @@ case $ACTION in
         echo "更新 GRUB 配置..."
         sudo update-grub
 
-        echo "安装和配置完成，请重启系统以加载新内核。"
+        echo -e "\033[32m安装和配置完成，请重启系统以加载新内核。\033[0m"
         ;;
 
     2)
         # 检查是否为 BBR v3
-        echo "您选择了检查是否为 BBR v3。"
-        sudo modinfo tcp_bbr
+        echo -e "\033[32m您选择了检查是否为 BBR v3。\033[0m"
+        BBR_INFO=$(sudo modinfo tcp_bbr)
+        BBR_VERSION=$(echo "$BBR_INFO" | grep -i "version:" | awk '{print $2}')
+
+        if [[ "$BBR_VERSION" == *"3"* ]]; then
+            echo -e "\033[32m检测到 BBR v3 已安装。\033[0m"
+        else
+            echo -e "\033[31m未检测到 BBR v3。当前版本：$BBR_VERSION\033[0m"
+        fi
         ;;
 
     3)
-        # 查看 BBR 是否开启
-        echo "您选择了查看 BBR 是否开启。"
-        sysctl net.ipv4.tcp_congestion_control
-        sysctl net.core.default_qdisc
+        # 使用 BBR + FQ 加速
+        echo -e "\033[32m您选择了使用 BBR + FQ 加速。\033[0m"
+        sudo sysctl -w net.core.default_qdisc=fq
+        sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+        echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+        sudo sysctl -p
+        echo -e "\033[32m已设置为 BBR + FQ。\033[0m"
         ;;
 
     4)
-        # 开启或关闭 BBR
-        echo "您选择了开启或关闭 BBR。"
+        # 使用 BBR + FQ_PIE 加速
+        echo -e "\033[32m您选择了使用 BBR + FQ_PIE 加速。\033[0m"
+        sudo modprobe fq_pie
+        sudo sysctl -w net.core.default_qdisc=fq_pie
+        sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+        echo "net.core.default_qdisc=fq_pie" | sudo tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+        sudo sysctl -p
+        echo -e "\033[32m已设置为 BBR + FQ_PIE。\033[0m"
+        ;;
 
-        # 显示当前 BBR 状态
-        CURRENT_ALGO=$(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}')
-        CURRENT_QDISC=$(sysctl net.core.default_qdisc | awk '{print $3}')
-        
-        echo "当前 BBR 状态："
-        echo "TCP 拥塞控制算法：$CURRENT_ALGO"
-        echo "队列管理算法：$CURRENT_QDISC"
+    5)
+        # 使用 BBR + CAKE 加速
+        echo -e "\033[32m您选择了使用 BBR + CAKE 加速。\033[0m"
+        sudo modprobe sch_cake
+        sudo sysctl -w net.core.default_qdisc=cake
+        sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+        echo "net.core.default_qdisc=cake" | sudo tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+        sudo sysctl -p
+        echo -e "\033[32m已设置为 BBR + CAKE。\033[0m"
+        ;;
+
+    6)
+        # 开启或关闭 BBR
+        echo -e "\033[32m您选择了开启或关闭 BBR。\033[0m"
 
         echo "请选择操作："
         echo "1. 开启 BBR"
@@ -99,80 +127,40 @@ case $ACTION in
         read -r BBR_ACTION
 
         if [[ "$BBR_ACTION" == "1" ]]; then
-            echo "开启 BBR..."
-            echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
-            echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
-            sudo sysctl -p
-            echo "BBR 已开启。"
+            if [[ "$CURRENT_ALGO" == "bbr" && "$CURRENT_QDISC" == "fq" ]]; then
+                echo -e "\033[33mBBR 已开启，无需重复设置。\033[0m"
+            else
+                echo "开启 BBR..."
+                sudo sysctl -w net.core.default_qdisc=fq
+                sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+                
+                # 将设置写入配置文件以便重启后生效
+                sudo sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+                sudo sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+                echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+                echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+                
+                echo -e "\033[32mBBR 已开启。\033[0m"
+            fi
         elif [[ "$BBR_ACTION" == "2" ]]; then
-            echo "关闭 BBR..."
-            sudo sed -i '/net.core.default_qdisc=fq/d' /etc/sysctl.conf
-            sudo sed -i '/net.ipv4.tcp_congestion_control=bbr/d' /etc/sysctl.conf
-            echo "net.ipv4.tcp_congestion_control=cubic" | sudo tee -a /etc/sysctl.conf
-            sudo sysctl -p
-            echo "BBR 已关闭，切换到 cubic。"
+            if [[ "$CURRENT_ALGO" != "bbr" ]]; then
+                echo -e "\033[33mBBR 当前未开启，无需关闭。\033[0m"
+            else
+                echo "关闭 BBR..."
+                sudo sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+                sudo sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+                echo "net.ipv4.tcp_congestion_control=cubic" | sudo tee -a /etc/sysctl.conf
+                sudo sysctl -w net.ipv4.tcp_congestion_control=cubic
+                sudo sysctl -w net.core.default_qdisc=pfifo_fast
+                
+                echo -e "\033[32mBBR 已关闭，切换到 cubic。\033[0m"
+            fi
         else
-            echo "无效选项，请输入 1 或 2。"
+            echo -e "\033[31m无效选项，请输入 1 或 2。\033[0m"
         fi
         ;;
 
-    5)
-        # 选择 TCP 拥塞控制算法和队列管理算法，并显示当前算法
-        echo "您选择了选择 TCP 拥塞控制算法和队列管理算法。"
-
-        # 显示当前配置
-        CURRENT_ALGO=$(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}')
-        CURRENT_QDISC=$(sysctl net.core.default_qdisc | awk '{print $3}')
-
-        echo "当前 TCP 拥塞控制算法：$CURRENT_ALGO"
-        echo "当前队列管理算法：$CURRENT_QDISC"
-
-        echo "可用的 TCP 拥塞控制算法有："
-        echo "1. bbr"
-        echo "2. cubic"
-        echo "3. reno"
-        echo -n "请输入要设置的 TCP 拥塞控制算法编号 (1-3): "
-        read -r ALGO_NUM
-
-        case $ALGO_NUM in
-            1) ALGO="bbr" ;;
-            2) ALGO="cubic" ;;
-            3) ALGO="reno" ;;
-            *)
-                echo "无效选项，已退出。"
-                exit 1
-                ;;
-        esac
-
-        echo "可用的队列管理算法有："
-        echo "1. fq"
-        echo "2. pfifo_fast"
-        echo "3. fq_codel"
-        echo -n "请输入要设置的队列管理算法编号 (1-3): "
-        read -r QDISC_NUM
-
-        case $QDISC_NUM in
-            1) QDISC="fq" ;;
-            2) QDISC="pfifo_fast" ;;
-            3) QDISC="fq_codel" ;;
-            *)
-                echo "无效选项，已退出。"
-                exit 1
-                ;;
-        esac
-
-        echo "设置 TCP 拥塞控制算法为 $ALGO 和队列管理算法为 $QDISC..."
-        sudo sed -i "/net.core.default_qdisc/d" /etc/sysctl.conf
-        sudo sed -i "/net.ipv4.tcp_congestion_control/d" /etc/sysctl.conf
-        echo "net.core.default_qdisc=$QDISC" | sudo tee -a /etc/sysctl.conf
-        echo "net.ipv4.tcp_congestion_control=$ALGO" | sudo tee -a /etc/sysctl.conf
-        sudo sysctl -p
-        echo "TCP 拥塞控制算法已设置为 $ALGO，队列管理算法已设置为 $QDISC。"
-        ;;
-
     *)
-        echo "无效的选项。请输入 1 到 5 之间的数字。"
+        echo -e "\033[31m无效选项，请输入 1 到 6。\033[0m"
         ;;
 esac
-
-echo "操作完成。"
